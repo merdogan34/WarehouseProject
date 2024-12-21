@@ -1,0 +1,766 @@
+#VERİTABANINA BAĞLANIP 2 ADET TABLO (stok ve muşteri bilgileri) OLUŞTURULUR
+import sqlite3
+vt = sqlite3.connect("C:\\Users\\lenovo\\Desktop\\Civil Eng\\Python\\Final\\DB\\finalDB.db")
+im = vt.cursor()
+stok_vt = """CREATE TABLE IF NOT EXISTS stok (URUN , MODEL , EBAT , ADET integer , FİYAT integer , TARİH) """
+im.execute(stok_vt)
+musteri_bilgileri = """CREATE TABLE IF NOT EXISTS musteribilgileri (AD , SOYAD , TELEFON , ADRES , EVRAK integer )"""
+im.execute(musteri_bilgileri)
+
+#MÜŞTERİ KAYDI İÇİN TKINTER
+from tkinter import *
+alanlar = ('AD', 'SOYAD', 'TELEFON', 'ADRES', 'EVRAKNO')
+#BOŞ SEPET VE HESAP (TUTAR)
+sepet = []
+toplam2 = 0
+
+#stok = HALI MAĞAZASININ DEPOSUNDA BULUNAN ÜRÜNLER
+class stok():
+    def __init__(self, urun , model , ebat , adet , fiyat , tarih):
+        self.urun = urun
+        self.model = model
+        self.ebat = ebat
+        self.adet = adet
+        self.fiyat = fiyat
+        self.tarih = tarih
+    def stok_girisi(self):
+        im.execute("insert into stok VALUES ( ? , ? , ? ,? , ? , ? )",(self.urun , self.model , self.ebat , self.adet , self.fiyat , self.tarih))
+        vt.commit()
+    def stok_goster():
+        im.execute("SELECT * FROM stok ")
+        secim2 = im.fetchall()
+        for x in secim2 :
+            print(x)
+    def stok_secilimarka():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' ".format(urun_adi))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_seciliebat():
+        im.execute("SELECT * FROM stok WHERE ebat = '{}' ".format(urun_ebat))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_sil():
+        im.execute("DELETE FROM stok WHERE urun = '{}' AND model = '{}' ".format(sil_urun , sil_model))
+        vt.commit()
+    def stok_guncelle():
+        im.execute("UPDATE stok SET adet = '{}' WHERE urun = '{}' AND model = '{}' ".format(guncel_adet , degis_urun , degis_model))
+        vt.commit()
+
+#MÜŞTERİ VERİTABANI OLUŞTURMAK VE YÖNETMEK
+def musteri_giris(girdiler):
+    m_ad = str(girdiler['AD'].get())
+    m_soyad = str(girdiler['SOYAD'].get())
+    m_tel = int(girdiler['TELEFON'].get())
+    m_adres = str(girdiler['ADRES'].get())
+    m_evrakno = int(girdiler['EVRAKNO'].get())
+    im.execute("INSERT INTO musteribilgileri VALUES ( ? , ? , ? ,? , ? )", (m_ad, m_soyad, m_tel, m_adres, m_evrakno))
+    vt.commit()
+    print("MÜŞTERİ BİLGİLERİ KAYDEDİLDİ >>>>>")
+
+def musteri_bul():
+    im.execute("SELECT * FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}'".format(ad_girdii.get(), soy_girdii.get()))
+    m_kayit = im.fetchall()
+    print("MÜŞTERİ BİLGİLER   :" , m_kayit)
+
+def musteri_evrakno_bul():
+    im.execute("SELECT EVRAK FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}' AND telefon = '{}'".format(evrkno_ad , evrkno_soyad , evrkno_tel))
+    evrkno = im.fetchall()
+    for i in evrkno :
+        evrak_no_listesi.append(i)
+
+def musteri_begen():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim3 = im.fetchall()
+        print(secim3)
+
+#SATIŞ İŞLEMİNİ GERÇEKLEŞTİRME VE VERİTABANI STOK ADEDİNİ GÜNCELLEME FONKSİYONLARI
+def musteri_al():
+        im.execute("SELECT FİYAT FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim4 = im.fetchall()
+        toplam = secim4[0][0] * sec_adet
+        sepet.append(toplam)
+        print("ÜRÜN SEPETE EKLENDİ ^^^ SEPET  :" , sepet)
+        global toplam2
+        toplam2 = toplam + toplam2
+        print("ADET FİYATI  : ", secim4[0][0])
+        print("TOPLAM TUTAR  :", toplam2)
+
+
+def musteri_alisveris_sonu_stok_guncellemesi():
+        im.execute("SELECT ADET FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format(sec_urun, sec_model, sec_ebat))
+        secim5 = im.fetchall()
+        guncel_stok_adet = secim5[0][0] - sec_adet
+        print("KALAN ÜRÜN ADETİ  :" , guncel_stok_adet)
+        global guncel_adet
+        global degis_urun
+        global degis_model
+        guncel_adet = guncel_stok_adet
+        degis_urun = sec_urun
+        degis_model = sec_model
+        stok.stok_guncelle()
+
+#TKINTER FONKSIYON
+def gorsel_sekil(pencere, alanlar):
+   girdiler = {}
+   for ii in alanlar:
+      pp = Frame(pencere)
+      kutu = Label(pp, width=22, text=ii+": ", anchor='w')
+      girdi = Entry(pp)
+      girdi.insert(0,"")
+      pp.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+      kutu.pack(side = LEFT)
+      girdi.pack(side = RIGHT, expand = YES, fill = X)
+      girdiler[ii] = girdi
+   return girdiler
+
+# ANAEKRAN :
+# 1) MAĞAZA SORUMLUSU STOKLARIN DURUMUNU KONTROL EDEBİLİR VE ÜRÜN GİRİŞİ YAPABİLİR.
+# 2) GELEN MÜŞTERİNİN KİMLİK BİLGİLERİ İLE EVRAK NO (SENET, ÇEK VEYA SÖZLEŞME) BULABİLİR.
+# 3) ÜRÜN SATIŞI GERÇEKLEŞTİREBİLİR.
+while True :
+    try:
+        main_menu = int(input("STOK İŞLEMLERİ (1) MÜŞTERİ ARAYÜZÜ (2) SATIŞ ARAYÜZÜ (3)\n"))
+        break
+    except ValueError :
+        print("LÜTFEN SAYI GİRİNİZ")
+        continue
+
+if main_menu == 1 :
+    ana_ekran = int(input("""STOKLARA ÜRÜN EKLEMEK İÇİN (1) STOKLARI KONTROL ETMEK İÇİN (2) :"""))
+    if ana_ekran == 1 :
+            while True :
+                gir_urun = input("ÜRÜN  :")
+                gir_model = input("MODEL  :")
+                gir_ebat = input("EBAT  :")
+                gir_adet = int(input("ADET  :"))
+                gir_fiyat = int(input("FİYAT  :"))
+                gir_tarih = input("TARİH  :")
+                yeni = stok(gir_urun , gir_model , gir_ebat , gir_adet, gir_fiyat , gir_tarih)
+                yeni.stok_girisi()
+                print("ÜRÜN STOKLARA EKLENDİ ")
+                secim = int(input("YENİ ÜRÜN EKELMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if secim == 1 :
+                    continue
+                else :
+                    break
+    if ana_ekran == 2 :
+        soru = int(input("TÜM ÜRÜNLER (1) MARKAYA GÖRE (2) EBATLARA GÖRE (3) :"))
+        if soru == 1 :
+            stok.stok_goster()
+
+        if soru == 2 :
+            urun_adi = input("URUN ADI GİRİNİZ  :")
+            stok.stok_secilimarka()
+
+        if soru == 3 :
+            urun_ebat = input("EBATI GİRİNİZ  :")
+            stok.stok_seciliebat()
+
+        soru3 = int(input("ÜRÜN SİLMEK İÇİN (1) ADET GÜNCELLEMESİ İÇİN (2) ÇIKIŞ İÇİN (0)"))
+        if soru3 == 0 :
+            print("ÇIKIŞ YAPILDI .....")
+        if soru3 == 1 :
+            while True :
+                sil_urun = input("URUNÜ GİRİNİZ  :")
+                sil_model = input("MODEL GİRİNİZ  :")
+                stok.stok_sil()
+                print("ÜRÜN KALDIRILDI STOK GÜNCELLENDİ >>>>>> YENİ STOK :")
+                stok.stok_goster()
+                baska = int(input("FARKLI ÜRÜN SİLMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1 :
+                    continue
+                else :
+                    break
+        if soru3 == 2 :
+            while True :
+                degis_urun = input("ÜRÜNÜ GİRİNİZ  :")
+                degis_model = input("MODEL GİRİNİZ  :")
+                guncel_adet = int(input("GÜNCEL ADEDİ GİRİNİZ  :"))
+                stok.stok_guncelle()
+                print("STOK ADEDİ GÜNCELLENDİ >>>>>> YENİ STOK  :")
+                stok.stok_goster()
+                baska = int(input("FARKLI STOK ADET GÜNCELLEMESİ İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1:
+                    continue
+                else:
+                    break
+if main_menu == 2 :
+    soru4 = int(input("YENİ MÜŞTERİ KAYDI (1) KAYITLI MÜŞTERİ BUL (2)"))
+    if soru4 == 1 :
+        pencere = Tk()
+        gir = gorsel_sekil(pencere, alanlar)
+        pencere.bind('<Return>', (lambda event, e=gir: fetch(e)))
+        buton2 = Button(pencere, text='KAYDET', command=(lambda e=gir: musteri_giris(e)))
+        buton2.pack(side=LEFT, padx=5, pady=5)
+        buton3 = Button(pencere, text='ÇIKIŞ', command=pencere.quit)
+        buton3.pack(side=LEFT, padx=5, pady=5)
+        pencere.mainloop()
+    if soru4 == 2 :
+        print("LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ")
+        pencere = Tk()
+        kutu1 = Label(pencere, text="MÜŞTERİ ADI")
+        kutu1.grid(row=0, column=0)
+        kutu2 = Label(pencere, text="MÜŞTERİ SOYADI")
+        kutu2.grid(row=1, column=0)
+        ad_girdii = StringVar()
+        girdii2 = Entry(pencere, textvariable=ad_girdii)
+        girdii2.grid(row=0, column=1)
+        girdii2.focus()
+        soy_girdii = StringVar()
+        girdii3 = Entry(pencere, textvariable=soy_girdii)
+        girdii3.grid(row=1, column=1)
+        girdii3.focus()
+        buton_bul = Button(pencere, text="BUL", width=12, command=musteri_bul)
+        buton_bul.grid(row=4, column=0)
+        buton_cikis = Button(pencere, text="ÇIKIŞ", width=12, command=pencere.quit)
+        buton_cikis.grid(row=4, column=1)
+        pencere.mainloop()
+
+if main_menu == 3 :
+    evrak_no_listesi = []
+    print("*** EVRAK NO BULMAK İÇİN LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ ***")
+    evrkno_ad = input("MÜŞTERİ ADI  :")
+    evrkno_soyad = input("MÜŞTERİ SOYADI  :")
+    evrkno_tel = input("TELEFON NUMARASI  :")
+    musteri.musteri_evrakno_bul()
+    print("KAYITLI MÜŞTERİNİN EVRAK NUMARASI BELİRLENDİ  :", evrak_no_listesi[0][0])
+    #MÜŞTERİNİN MAĞAZADA BEĞENDİĞİ HALININ DEPO STOK DURUMUNU KONTROL ETMEK VE SEÇİLEN ADETE GÖRE STOKLARIN GÜNCELLENMESİ
+    print("SEÇTİĞİNİZ ÜRÜNÜN ÖZELLİKLERİNİ GİRİNİZ .........")
+    while True :
+        sec_urun = input("ÜRÜN ADI  :")
+        sec_model = input("MODEL   :")
+        sec_ebat = input("EBAT   :")
+        musteri_begen()
+        sec_adet = int(input("KAÇ ADET  :"))
+        im.execute("SELECT ADET FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format(sec_urun, sec_model,sec_ebat))
+        secim5 = im.fetchall()
+        if sec_adet > secim5[0][0] :
+            print("ÜZGÜNÜM SADECE {} ADET ÜRÜN KALDI".format(secim5[0][0]))
+            break
+        else :
+            musteri_al()
+            soru6 = int(input("ÜRÜN EKLEMEK İÇİN (1) ÇIKIŞ (0)  :"))
+            if soru6 == 1 :
+                continue
+            elif soru6 == 0 :
+                break
+    musteri_alisveris_sonu_stok_guncellemesi()
+    sepet.clear()
+    hesap = 0
+vt.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*************************************************************************************************************************************************************************
+
+
+
+
+
+
+
+#VERİTABANINA BAĞLANIP 2 ADET TABLO (stok ve muşteri bilgileri) OLUŞTURULUR
+import sqlite3
+vt = sqlite3.connect("C:\\Users\\lenovo\\Desktop\\Civil Eng\\Python\\Final\\DB\\finalDB.db")
+im = vt.cursor()
+stok_vt = """CREATE TABLE IF NOT EXISTS stok (URUN , MODEL , EBAT , ADET integer , FİYAT integer , TARİH) """
+im.execute(stok_vt)
+musteri_bilgileri = """CREATE TABLE IF NOT EXISTS musteribilgileri (AD , SOYAD , TELEFON , ADRES , EVRAK integer )"""
+im.execute(musteri_bilgileri)
+
+#MÜŞTERİ KAYDI İÇİN TKINTER
+from tkinter import *
+alanlar = ('AD', 'SOYAD', 'TELEFON', 'ADRES', 'EVRAKNO')
+#BOŞ SEPET VE HESAP (TUTAR)
+sepet = []
+toplam2 = 0
+
+#stok = HALI MAĞAZASININ DEPOSUNDA BULUNAN ÜRÜNLER
+class stok():
+    def __init__(self, urun , model , ebat , adet , fiyat , tarih):
+        self.urun = urun
+        self.model = model
+        self.ebat = ebat
+        self.adet = adet
+        self.fiyat = fiyat
+        self.tarih = tarih
+    def stok_girisi(self):
+        im.execute("insert into stok VALUES ( ? , ? , ? ,? , ? , ? )",(self.urun , self.model , self.ebat , self.adet , self.fiyat , self.tarih))
+        vt.commit()
+    def stok_goster():
+        im.execute("SELECT * FROM stok ")
+        secim2 = im.fetchall()
+        for x in secim2 :
+            print(x)
+    def stok_secilimarka():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' ".format(urun_adi))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_seciliebat():
+        im.execute("SELECT * FROM stok WHERE ebat = '{}' ".format(urun_ebat))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_sil():
+        im.execute("DELETE FROM stok WHERE urun = '{}' AND model = '{}' ".format(sil_urun , sil_model))
+        vt.commit()
+    def stok_guncelle():
+        im.execute("UPDATE stok SET adet = '{}' WHERE urun = '{}' AND model = '{}' ".format(guncel_adet , degis_urun , degis_model))
+        vt.commit()
+
+
+#MÜŞTERİ VERİTABANI OLUŞTURMAK VE YÖNETMEK İÇİN, MÜŞTERİ CLASS'ı
+def musteri_giris(girdiler):
+    m_ad = str(girdiler['AD'].get())
+    m_soyad = str(girdiler['SOYAD'].get())
+    m_tel = int(girdiler['TELEFON'].get())
+    m_adres = str(girdiler['ADRES'].get())
+    m_evrakno = int(girdiler['EVRAKNO'].get())
+    im.execute("INSERT INTO musteribilgileri VALUES ( ? , ? , ? ,? , ? )", (m_ad, m_soyad, m_tel, m_adres, m_evrakno))
+    vt.commit()
+    print("MÜŞTERİ BİLGİLERİ KAYDEDİLDİ >>>>>")
+
+
+
+def musteri_bul():
+        im.execute("SELECT * FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}'".format(ad , soyad))
+        m_kayit = im.fetchall()
+        print(m_kayit)
+
+def musteri_evrakno_bul():
+        im.execute("SELECT EVRAK FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}' AND telefon = '{}'".format(evrkno_ad , evrkno_soyad , evrkno_tel))
+        evrkno = im.fetchall()
+        for i in evrkno :
+            evrak_no_listesi.append(i)
+
+def musteri_begen():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim3 = im.fetchall()
+        print(secim3)
+
+#SATIŞ İŞLEMİNİ GERÇEKLEŞTİRME VE VERİTABANI STOK ADEDİNİ GÜNCELLEME FONKSİYONLARI
+def musteri_al():
+        im.execute("SELECT FİYAT FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim4 = im.fetchall()
+        toplam = secim4[0][0] * sec_adet
+        sepet.append(toplam)
+        print("ÜRÜN SEPETE EKLENDİ ^^^ SEPET  :" , sepet)
+        global toplam2
+        toplam2 = toplam + toplam2
+        print("ADET FİYATI  : ", secim4[0][0])
+        print("TOPLAM TUTAR  :", toplam2)
+
+
+def musteri_alisveris_sonu_stok_guncellemesi():
+        im.execute("SELECT ADET FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format(sec_urun, sec_model, sec_ebat))
+        secim5 = im.fetchall()
+        guncel_stok_adet = secim5[0][0] - sec_adet
+        print("KALAN ÜRÜN ADETİ  :" , guncel_stok_adet)
+        global guncel_adet
+        global degis_urun
+        global degis_model
+        guncel_adet = guncel_stok_adet
+        degis_urun = sec_urun
+        degis_model = sec_model
+        stok.stok_guncelle()
+
+#TKINTER FONKSIYON
+def gorsel_sekil(root, alanlar):
+   girdiler = {}
+   for ii in alanlar:
+      satir = Frame(root)
+      kutu = Label(satir, width=22, text=ii+": ", anchor='w')
+      girdi = Entry(satir)
+      girdi.insert(0,"")
+      satir.pack(side = TOP, fill = X, padx = 5 , pady = 5)
+      kutu.pack(side = LEFT)
+      girdi.pack(side = RIGHT, expand = YES, fill = X)
+      girdiler[ii] = girdi
+   return girdiler
+
+# ANAEKRAN :
+# 1) MAĞAZA SORUMLUSU STOKLARIN DURUMUNU KONTROL EDEBİLİR VE ÜRÜN GİRİŞİ YAPABİLİR.
+# 2) GELEN MÜŞTERİNİN KİMLİK BİLGİLERİ İLE EVRAK NO (SENET, ÇEK VEYA SÖZLEŞME) BULABİLİR.
+# 3) ÜRÜN SATIŞI GERÇEKLEŞTİREBİLİR.
+while True :
+    try:
+        main_menu = int(input("STOK İŞLEMLERİ (1) MÜŞTERİ ARAYÜZÜ (2) SATIŞ ARAYÜZÜ (3)\n"))
+        break
+    except ValueError :
+        print("LÜTFEN SAYI GİRİNİZ")
+        continue
+
+if main_menu == 1 :
+    ana_ekran = int(input("""STOKLARA ÜRÜN EKLEMEK İÇİN (1) STOKLARI KONTROL ETMEK İÇİN (2) :"""))
+    if ana_ekran == 1 :
+            while True :
+                gir_urun = input("ÜRÜN  :")
+                gir_model = input("MODEL  :")
+                gir_ebat = input("EBAT  :")
+                gir_adet = int(input("ADET  :"))
+                gir_fiyat = int(input("FİYAT  :"))
+                gir_tarih = input("TARİH  :")
+                yeni = stok(gir_urun , gir_model , gir_ebat , gir_adet, gir_fiyat , gir_tarih)
+                yeni.stok_girisi()
+                print("ÜRÜN STOKLARA EKLENDİ ")
+                secim = int(input("YENİ ÜRÜN EKELMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if secim == 1 :
+                    continue
+                else :
+                    break
+    if ana_ekran == 2 :
+        soru = int(input("TÜM ÜRÜNLER (1) MARKAYA GÖRE (2) EBATLARA GÖRE (3) :"))
+        if soru == 1 :
+            stok.stok_goster()
+
+        if soru == 2 :
+            urun_adi = input("URUN ADI GİRİNİZ  :")
+            stok.stok_secilimarka()
+
+        if soru == 3 :
+            urun_ebat = input("EBATI GİRİNİZ  :")
+            stok.stok_seciliebat()
+
+        soru3 = int(input("ÜRÜN SİLMEK İÇİN (1) ADET GÜNCELLEMESİ İÇİN (2) ÇIKIŞ İÇİN (0)"))
+        if soru3 == 0 :
+            print("ÇIKIŞ YAPILDI .....")
+        if soru3 == 1 :
+            while True :
+                sil_urun = input("URUNÜ GİRİNİZ  :")
+                sil_model = input("MODEL GİRİNİZ  :")
+                stok.stok_sil()
+                print("ÜRÜN KALDIRILDI STOK GÜNCELLENDİ >>>>>> YENİ STOK :")
+                stok.stok_goster()
+                baska = int(input("FARKLI ÜRÜN SİLMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1 :
+                    continue
+                else :
+                    break
+        if soru3 == 2 :
+            while True :
+                degis_urun = input("ÜRÜNÜ GİRİNİZ  :")
+                degis_model = input("MODEL GİRİNİZ  :")
+                guncel_adet = int(input("GÜNCEL ADEDİ GİRİNİZ  :"))
+                stok.stok_guncelle()
+                print("STOK ADEDİ GÜNCELLENDİ >>>>>> YENİ STOK  :")
+                stok.stok_goster()
+                baska = int(input("FARKLI STOK ADET GÜNCELLEMESİ İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1:
+                    continue
+                else:
+                    break
+if main_menu == 2 :
+    soru4 = int(input("YENİ MÜŞTERİ KAYDI (1) KAYITLI MÜŞTERİ (2)"))
+    if soru4 == 1 :
+        root = Tk()
+        gir = gorsel_sekil(root, alanlar)
+        root.bind('<Return>', (lambda event, e=gir: fetch(e)))
+        buton2 = Button(root, text='KAYDET', command=(lambda e=gir: musteri_giris(e)))
+        buton2.pack(side=LEFT, padx=5, pady=5)
+        buton3 = Button(root, text='ÇIKIŞ', command=root.quit)
+        buton3.pack(side=LEFT, padx=5, pady=5)
+        root.mainloop()
+
+
+    if soru4 == 2 :
+        print("LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ")
+        ad = input("ADI  :")
+        soyad = input("SOYAD  :")
+        musteri_bul()
+if main_menu == 3 :
+    evrak_no_listesi = []
+    print("*** EVRAK NO BULMAK İÇİN LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ ***")
+    evrkno_ad = input("MÜŞTERİ ADI  :")
+    evrkno_soyad = input("MÜŞTERİ SOYADI  :")
+    evrkno_tel = input("TELEFON NUMARASI  :")
+    musteri.musteri_evrakno_bul()
+    print("KAYITLI MÜŞTERİNİN EVRAK NUMARASI BELİRLENDİ  :", evrak_no_listesi[0][0])
+
+    #MÜŞTERİNİN MAĞAZADA BEĞENDİĞİ HALININ DEPO STOK DURUMUNU KONTROL ETMEK VE SEÇİLEN ADETE GÖRE STOKLARIN GÜNCELLENMESİ
+    print("SEÇTİĞİNİZ ÜRÜNÜN ÖZELLİKLERİNİ GİRİNİZ .........")
+    while True :
+        sec_urun = input("ÜRÜN ADI  :")
+        sec_model = input("MODEL   :")
+        sec_ebat = input("EBAT   :")
+        musteri_begen()
+        sec_adet = int(input("KAÇ ADET  :"))
+        musteri_al()
+        soru6 = int(input("ÜRÜN EKLEMEK İÇİN (1) ÇIKIŞ (0)  :"))
+        if soru6 == 1 :
+            continue
+        elif soru6 == 0 :
+            break
+    musteri_alisveris_sonu_stok_guncellemesi()
+    sepet.clear()
+    hesap = 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*********************************************
+#VERİTABANINA BAĞLANIP 2 ADET TABLO (stok ve muşteri bilgileri) OLUŞTURULUR
+import sqlite3
+vt = sqlite3.connect("C:\\Users\\lenovo\\Desktop\\Civil Eng\\Python\\Final\\DB\\finalDB.db")
+im = vt.cursor()
+stok_vt = """CREATE TABLE IF NOT EXISTS stok (URUN , MODEL , EBAT , ADET integer , FİYAT integer , TARİH) """
+im.execute(stok_vt)
+musteri_bilgileri = """CREATE TABLE IF NOT EXISTS musteribilgileri (AD , SOYAD , TELEFON , ADRES , EVRAK integer )"""
+im.execute(musteri_bilgileri)
+
+#BOŞ SEPET VE HESAP (TUTAR)
+sepet = []
+toplam2 = 0
+
+#stok = HALI MAĞAZASININ DEPOSUNDA BULUNAN ÜRÜNLER
+class stok():
+    def __init__(self, urun , model , ebat , adet , fiyat , tarih):
+        self.urun = urun
+        self.model = model
+        self.ebat = ebat
+        self.adet = adet
+        self.fiyat = fiyat
+        self.tarih = tarih
+    def stok_girisi(self):
+        im.execute("insert into stok VALUES ( ? , ? , ? ,? , ? , ? )",(self.urun , self.model , self.ebat , self.adet , self.fiyat , self.tarih))
+        vt.commit()
+    def stok_goster():
+        im.execute("SELECT * FROM stok ")
+        secim2 = im.fetchall()
+        for x in secim2 :
+            print(x)
+    def stok_secilimarka():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' ".format(urun_adi))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_seciliebat():
+        im.execute("SELECT * FROM stok WHERE ebat = '{}' ".format(urun_ebat))
+        secim2 = im.fetchall()
+        print(secim2)
+    def stok_sil():
+        im.execute("DELETE FROM stok WHERE urun = '{}' AND model = '{}' ".format(sil_urun , sil_model))
+        vt.commit()
+    def stok_guncelle():
+        im.execute("UPDATE stok SET adet = '{}' WHERE urun = '{}' AND model = '{}' ".format(guncel_adet , degis_urun , degis_model))
+        vt.commit()
+
+
+#MÜŞTERİ VERİTABANI OLUŞTURMAK VE YÖNETMEK İÇİN, MÜŞTERİ CLASS'ı
+class musteri():
+
+    def __init__(self , ad , soyad , telefon , adres , evrakno):
+        self.ad = ad
+        self.soyad = soyad
+        self.telefon = telefon
+        self.adres = adres
+        self.evrakno = evrakno
+
+    def musteri_giris(self):
+        im.execute("INSERT INTO musteribilgileri VALUES ( ? , ? , ? ,? , ? )",(self.ad, self.soyad, self.telefon, self.adres, self.evrakno))
+        vt.commit()
+
+    def musteri_bul():
+        im.execute("SELECT * FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}'".format(ad , soyad))
+        m_kayit = im.fetchall()
+        print(m_kayit)
+
+    def musteri_evrakno_bul():
+        im.execute("SELECT EVRAK FROM musteribilgileri WHERE ad = '{}' AND soyad = '{}' AND telefon = '{}'".format(evrkno_ad , evrkno_soyad , evrkno_tel))
+        evrkno = im.fetchall()
+        for i in evrkno :
+            evrak_no_listesi.append(i)
+
+    def musteri_begen():
+        im.execute("SELECT * FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim3 = im.fetchall()
+        print(secim3)
+
+#SATIŞ İŞLEMİNİ GERÇEKLEŞTİRME VE VERİTABANI STOK ADEDİNİ GÜNCELLEME FONKSİYONLARI
+def musteri_al():
+        im.execute("SELECT FİYAT FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format( sec_urun , sec_model , sec_ebat))
+        secim4 = im.fetchall()
+        toplam = secim4[0][0] * sec_adet
+        sepet.append(toplam)
+        print("ÜRÜN SEPETE EKLENDİ ^^^ SEPET  :" , sepet)
+        global toplam2
+        toplam2 = toplam + toplam2
+        print("ADET FİYATI  : ", secim4[0][0])
+        print("TOPLAM TUTAR  :", toplam2)
+
+
+def musteri_alisveris_sonu_stok_guncellemesi():
+        im.execute("SELECT ADET FROM stok WHERE urun = '{}' AND model = '{}' AND ebat = '{}'".format(sec_urun, sec_model, sec_ebat))
+        secim5 = im.fetchall()
+        guncel_stok_adet = secim5[0][0] - sec_adet
+        print("KALAN ÜRÜN ADETİ  :" , guncel_stok_adet)
+        global guncel_adet
+        global degis_urun
+        global degis_model
+        guncel_adet = guncel_stok_adet
+        degis_urun = sec_urun
+        degis_model = sec_model
+        stok.stok_guncelle()
+
+
+# ANAEKRAN :
+# 1) MAĞAZA SORUMLUSU STOKLARIN DURUMUNU KONTROL EDEBİLİR VE ÜRÜN GİRİŞİ YAPABİLİR.
+# 2) GELEN MÜŞTERİNİN KİMLİK BİLGİLERİ İLE EVRAK NO (SENET, ÇEK VEYA SÖZLEŞME) BULABİLİR.
+# 3) ÜRÜN SATIŞI GERÇEKLEŞTİREBİLİR.
+
+
+main_menu = int(input("STOK İŞLEMLERİ (1) MÜŞTERİ ARAYÜZÜ (2) SATIŞ ARAYÜZÜ (3)"))
+if main_menu == 1 :
+    ana_ekran = int(input("""STOKLARA ÜRÜN EKLEMEK İÇİN (1) STOKLARI KONTROL ETMEK İÇİN (2) :"""))
+    if ana_ekran == 1 :
+            while True :
+                gir_urun = input("ÜRÜN  :")
+                gir_model = input("MODEL  :")
+                gir_ebat = input("EBAT  :")
+                gir_adet = int(input("ADET  :"))
+                gir_fiyat = int(input("FİYAT  :"))
+                gir_tarih = input("TARİH  :")
+                yeni = stok(gir_urun , gir_model , gir_ebat , gir_adet, gir_fiyat , gir_tarih)
+                yeni.stok_girisi()
+                print("ÜRÜN STOKLARA EKLENDİ ")
+                secim = int(input("YENİ ÜRÜN EKELMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if secim == 1 :
+                    continue
+                else :
+                    break
+    if ana_ekran == 2 :
+        soru = int(input("TÜM ÜRÜNLER (1) MARKAYA GÖRE (2) EBATLARA GÖRE (3) :"))
+        if soru == 1 :
+            stok.stok_goster()
+
+        if soru == 2 :
+            urun_adi = input("URUN ADI GİRİNİZ  :")
+            stok.stok_secilimarka()
+
+        if soru == 3 :
+            urun_ebat = input("EBATI GİRİNİZ  :")
+            stok.stok_seciliebat()
+
+        soru3 = int(input("ÜRÜN SİLMEK İÇİN (1) ADET GÜNCELLEMESİ İÇİN (2) ÇIKIŞ İÇİN (0)"))
+        if soru3 == 0 :
+            print("ÇIKIŞ YAPILDI .....")
+        if soru3 == 1 :
+            while True :
+                sil_urun = input("URUNÜ GİRİNİZ  :")
+                sil_model = input("MODEL GİRİNİZ  :")
+                stok.stok_sil()
+                print("ÜRÜN KALDIRILDI STOK GÜNCELLENDİ >>>>>> YENİ STOK :")
+                stok.stok_goster()
+                baska = int(input("FARKLI ÜRÜN SİLMEK İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1 :
+                    continue
+                else :
+                    break
+        if soru3 == 2 :
+            while True :
+                degis_urun = input("ÜRÜNÜ GİRİNİZ  :")
+                degis_model = input("MODEL GİRİNİZ  :")
+                guncel_adet = int(input("GÜNCEL ADEDİ GİRİNİZ  :"))
+                stok.stok_guncelle()
+                print("STOK ADEDİ GÜNCELLENDİ >>>>>> YENİ STOK  :")
+                stok.stok_goster()
+                baska = int(input("FARKLI STOK ADET GÜNCELLEMESİ İÇİN (1) ÇIKIŞ İÇİN (0)"))
+                if baska == 1:
+                    continue
+                else:
+                    break
+if main_menu == 2 :
+    soru4 = int(input("YENİ MÜŞTERİ KAYDI (1) KAYITLI MÜŞTERİ (2)"))
+    if soru4 == 1 :
+        print("MÜŞTERİ KAYIT EKRANINA HOŞGELDİNİZ LÜTFEN BİLGİLERİ GİRİNİZ")
+        m_ad = input("MÜŞTERİ ADI  :")
+        m_soyad = input("MÜŞTERİ SOYADI  :")
+        m_tel = input("TELEFON NUMARASI  :")
+        m_adres = input("ADRESİ  :")
+        m_evrakno = int(input("EVRAK NO  :"))
+        yeni = musteri(m_ad , m_soyad , m_tel , m_adres , m_evrakno)
+        yeni.musteri_giris()
+        print("MÜŞTERİ BİLGİLERİ KAYDEDİLDİ >>>>>")
+
+    if soru4 == 2 :
+        print("LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ")
+        ad = input("ADI  :")
+        soyad = input("SOYAD  :")
+        musteri.musteri_bul()
+if main_menu == 3 :
+    evrak_no_listesi = []
+    print("*** EVRAK NO BULMAK İÇİN LÜTFEN KAYITLI MÜŞTERİNİN BİLGİLERİNİ GİRİNİZ ***")
+    evrkno_ad = input("MÜŞTERİ ADI  :")
+    evrkno_soyad = input("MÜŞTERİ SOYADI  :")
+    evrkno_tel = input("TELEFON NUMARASI  :")
+    musteri.musteri_evrakno_bul()
+    print("KAYITLI MÜŞTERİNİN EVRAK NUMARASI BELİRLENDİ  :", evrak_no_listesi[0][0])
+
+    #MÜŞTERİNİN MAĞAZADA BEĞENDİĞİ HALININ DEPO STOK DURUMUNU KONTROL ETMEK VE SEÇİLEN ADETE GÖRE STOKLARIN GÜNCELLENMESİ
+    print("SEÇTİĞİNİZ ÜRÜNÜN ÖZELLİKLERİNİ GİRİNİZ .........")
+    while True :
+        sec_urun = input("ÜRÜN ADI  :")
+        sec_model = input("MODEL   :")
+        sec_ebat = input("EBAT   :")
+        musteri.musteri_begen()
+        sec_adet = int(input("KAÇ ADET  :"))
+        musteri_al()
+        soru6 = int(input("ÜRÜN EKLEMEK İÇİN (1) ÇIKIŞ (0)  :"))
+        if soru6 == 1 :
+            continue
+        elif soru6 == 0 :
+            break
+    musteri_alisveris_sonu_stok_guncellemesi()
+    sepet.clear()
+    hesap = 0
+
